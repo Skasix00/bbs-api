@@ -84,11 +84,6 @@ app.post('/photos', async (req, reply) => {
 });
 
 
-  const db = await connect();
-  await db.collection('photos').insertOne({ userId, filename, message, createdAt: new Date() });
-  return { id: filename, url: `/uploads/${filename}`, message };
-});
-
 // Start
 const port = process.env.PORT || 4000;
 app.listen({ port, host: '0.0.0.0' }, err => {
