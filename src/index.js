@@ -56,25 +56,33 @@ app.post('/photos', async (req, reply) => {
   if (!userId) return reply.code(400).send({ error: 'userId required' });
 
   let message = '';
-  let filePart;
+  let fileSaved = null;
+
   for await (const part of req.parts()) {
-    if (part.fieldname === 'message') {
+    if (part.file) {
+      // ficheiro
+      const filename = `${Date.now()}-${part.filename}`;
+      const filepath = path.join(UPLOADS_DIR, filename);
+      await new Promise((res, rej) => {
+        const ws = fs.createWriteStream(filepath);
+        part.file.pipe(ws);
+        ws.on('finish', res);
+        ws.on('error', rej);
+      });
+      fileSaved = filename;
+    } else if (part.fieldname === 'message') {
       message = await part.value;
     }
-    if (part.file) {
-      filePart = part;
-    }
   }
-  if (!filePart) return reply.code(400).send({ error: 'file missing' });
 
-  const filename = `${Date.now()}-${filePart.filename}`;
-  const filepath = path.join(UPLOADS_DIR, filename);
-  await new Promise((res, rej) => {
-    const ws = fs.createWriteStream(filepath);
-    filePart.file.pipe(ws);
-    ws.on('finish', res);
-    ws.on('error', rej);
-  });
+  if (!fileSaved) return reply.code(400).send({ error: 'file missing' });
+
+  const db = await connect();
+  await db.collection('photos').insertOne({ userId, filename: fileSaved, message, createdAt: new Date() });
+
+  return { id: fileSaved, url: `/uploads/${fileSaved}`, message };
+});
+
 
   const db = await connect();
   await db.collection('photos').insertOne({ userId, filename, message, createdAt: new Date() });
