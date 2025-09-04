@@ -6,7 +6,15 @@ import path from 'path';
 import { connect } from '../lib/mongodb.js';
 
 const app = Fastify({ logger: true });
-await app.register(cors, { origin: '*' });
+await app.register(cors, {
+  origin: (origin, cb) => {
+    cb(null, true)
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Disposition'],
+  credentials: true
+});
 await app.register(multipart);
 
 // Ensure uploads dir
